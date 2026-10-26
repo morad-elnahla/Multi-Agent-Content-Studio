@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SanadSquad | Content Delivery</title>
+<style>
+:root { color-scheme:dark; --bg:#09131d; --panel:#111f2a; --panel2:#172a34; --line:#29404b; --text:#ecf5f0; --muted:#9fb9b7; --green:#b6efd0; --green2:#74d9af; }
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse 600px 500px at 83% -7%,#1b4b48 0%,transparent 75%),var(--bg);color:var(--text);font:16px/1.65 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.wrap{max-width:1080px;padding:0 28px;margin:auto}.topline{border-bottom:1px solid var(--line);padding:26px 0;display:flex;align-items:center;justify-content:space-between;gap:20px}.logo{display:flex;gap:12px;align-items:center;font-size:20px;font-weight:820;letter-spacing:-.9px}.mark{background:#b6efd0;color:#0e3228;font-weight:950;width:37px;height:37px;border-radius:12px;display:grid;place-items:center;font-size:21px}.header-note{color:var(--muted);font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.hero{padding:72px 0 48px}.overline{color:var(--green2);font-size:12px;letter-spacing:.17em;text-transform:uppercase;font-weight:800}h1{font-size:clamp(38px,6.2vw,72px);line-height:1.06;max-width:850px;margin:14px 0 20px;letter-spacing:-.058em;font-weight:830}h1 em{color:var(--green);font-style:normal}.intro{max-width:690px;color:#b1c6c5;font-size:17px;line-height:1.85;margin:0 0 32px}.metrics{display:flex;flex-wrap:wrap;gap:12px}.metric{padding:14px 20px;background:#142630;border:1px solid #28434b;border-radius:14px;display:flex;align-items:center;gap:12px;min-width:166px}.metric b{font-size:25px;color:var(--green);line-height:1}.metric span{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;line-height:1.4}
+.nav{display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:14px;margin:8px 0 58px}.nav a{color:#d8eeeb;text-decoration:none;border:1px solid #345049;padding:10px 18px;border-radius:100px;font-size:13px;font-weight:720;transition:.2s}.nav a:hover{background:#214d41;border-color:#75cba9}.nav .hint{margin-left:auto;font-size:12px;color:var(--muted)}
+.section{margin:0 0 72px;scroll-margin-top:30px}.section-head{display:flex;align-items:end;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:30px;gap:15px}.section-head h2{font-size:31px;letter-spacing:-.04em;margin:2px 0 0;line-height:1.25}.section-note{max-width:460px;font-size:13px;color:var(--muted);margin:0}.count{display:inline-block;border:1px solid #365c55;background:#19352f;border-radius:9px;padding:4px 10px;color:#b6efd0;font-weight:760;font-size:12px}
+.content-card{border:1px solid var(--line);background:linear-gradient(180deg,#13242f,#101f2a);border-radius:23px;padding:30px 34px;margin:0 0 28px;box-shadow:0 14px 42px #0002}.card-header{display:flex;align-items:start;justify-content:space-between;gap:22px;padding-bottom:21px}.eyebrow{font-size:12px;letter-spacing:.105em;font-weight:760;color:var(--green2);display:flex;align-items:center;gap:11px;text-transform:uppercase}.dot{width:4px;height:4px;border-radius:50%;background:#6c8d88}h3{font-size:clamp(22px,3vw,29px);letter-spacing:-.04em;margin:7px 0 0;line-height:1.25}.copy-btn{font:inherit;cursor:pointer;border:1px solid #43665a;background:#203a34;color:#d6ffea;border-radius:10px;padding:9px 14px;font-size:12px;line-height:1.4;font-weight:720;white-space:nowrap;transition:background .15s,color .15s}.copy-btn:hover{background:#335949}.copy-btn.prominent{background:var(--green);color:#10281f;border-color:var(--green)}.copy-btn.prominent:hover{background:#dbffe8}.copy-btn.quiet{background:#20343e;color:#bcdcd8;border-color:#36505b}.copy-btn.quiet:hover{background:#345363;color:white}
+.tweet{padding:18px 0 19px;border-top:1px solid #2b424a}.tweet-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;color:#7fd9b8;font-size:10px;font-weight:830;letter-spacing:.14em}.tweet .copy-btn{font-size:11px;padding:6px 10px;letter-spacing:0}.tweet-text{margin:0;font-size:17px;line-height:1.76;white-space:pre-wrap;overflow-wrap:anywhere;max-width:880px;color:#f3f7f3;user-select:text}.image-brief{margin-top:18px;background:#1a3038;border:1px solid #3a5457;border-radius:16px;padding:20px 22px}.image-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.tiny-label{font-size:10px;letter-spacing:.15em;font-weight:780;color:#91d8bc}h4{margin:4px 0 0;font-size:17px;letter-spacing:-.02em}.image-text{color:#d1e4df;margin:12px 0 10px;font-size:14px;line-height:1.78;white-space:pre-wrap;overflow-wrap:anywhere}.image-hint{font-size:11px;color:#8aa7a4}.empty{border:1px dashed var(--line);border-radius:15px;padding:26px;color:var(--muted)}.footer{border-top:1px solid var(--line);padding:24px 0 45px;display:flex;gap:12px;justify-content:space-between;color:var(--muted);font-size:12px}
+button:focus-visible,a:focus-visible{outline:3px solid #f2d783;outline-offset:3px}
+@media(max-width:700px){.wrap{padding:0 17px}.topline{padding:18px 0}.header-note{font-size:10px}.hero{padding:48px 0 32px}.nav{margin:8px 0 40px}.nav .hint{display:none}.section-head{display:block}.section-note{margin-top:10px}.content-card{padding:19px 17px;border-radius:17px}.card-header{display:block}.card-header .copy-btn{margin-top:17px}.tweet-text{font-size:15px}.image-heading{align-items:start}.image-heading .copy-btn{white-space:normal}.footer{display:block}}
+@media print{:root{color-scheme:light}body{color:#15232c;background:white!important;font-size:12pt}.wrap{max-width:none;padding:0 15px}.nav,.copy-btn,.metric,.header-note{display:none!important}.hero{padding:15px 0 5px}h1{font-size:30pt;color:black}h1 em{color:#226650}.intro{font-size:11pt;color:#333}.section-head{margin:16px 0}.section-head h2{font-size:20pt;color:black}.content-card{border-color:#ccc;background:white!important;box-shadow:none;padding:15px;margin:0 0 20px;break-inside:avoid}.eyebrow,.tweet-meta,.overline,.tiny-label{color:#267a5b}h3,h4,.tweet-text,.image-text{color:#222}.tweet{border-color:#ddd}.image-brief{background:#f4f7f7;border-color:#ddd}.image-text{color:#333}.image-hint,.section-note{color:#666}.footer{color:#555}.section{margin-bottom:10px}.metric{display:none}}
+</style></head><body>
+<div class="wrap"><header class="topline"><div class="logo"><div class="mark">S</div><span>SanadSquad<span style="color:#79d9b5">.</span></span></div><span class="header-note">Content Delivery · 22 Oct 2026</span></header>
+<main><div class="hero"><div class="overline">Weekly Social Content · X / Twitter</div><h1>Content, <em>ready to review.</em></h1><p class="intro">Your generated technical threads, marketing posts, and matching image briefs — organized in one place, with easy copy controls.</p>
+<div class="metrics"><div class="metric"><b>03</b><span>Technical<br>threads</span></div><div class="metric"><b>03</b><span>Marketing<br>posts</span></div><div class="metric"><b>18</b><span>Total<br>tweets</span></div></div></div>
+<nav class="nav" aria-label="Content categories"><a href="#technical">Technical Threads →</a><a href="#marketing">Marketing Posts →</a><span class="hint">Copy individual posts or full threads</span></nav>
+<section class="section" id="technical"><div class="section-head"><div><div class="overline">01 / Technical</div><h2>Technical Threads <span class="count">3</span></h2></div><p class="section-note">Each thread is laid out tweet by tweet, followed by its visual direction.</p></div><article class="content-card" id="t1">
+      <div class="card-header">
+        <div class="card-heading">
+            <div class="eyebrow">THREAD 01<span class="dot"></span>5 tweets in this thread</div>
+            <h3>Access Control</h3>
+        </div>
+        <button class="copy-btn prominent" type="button" data-copy="t1-all"><span aria-hidden="true">⧉</span> Copy full thread</button>
+      </div>
+      <div id="t1-all" class="tweets"><section class="tweet" aria-label="TWEET 01 / 05">
+            <div class="tweet-meta"><span>TWEET 01 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t1-tweet-1">Copy text ↗</button></div>
+            <p class="tweet-text" id="t1-tweet-1">An audit of Swig found that sign_v1 does not limit which instructions can target accounts, allowing limited-permission users to run unauthorized actions.</p>
+        </section><section class="tweet" aria-label="TWEET 02 / 05">
+            <div class="tweet-meta"><span>TWEET 02 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t1-tweet-2">Copy text ↗</button></div>
+            <p class="tweet-text" id="t1-tweet-2">The permission check only fires when a transaction alters an account balance, so operations that only change control pass unchecked.</p>
+        </section><section class="tweet" aria-label="TWEET 03 / 05">
+            <div class="tweet-meta"><span>TWEET 03 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t1-tweet-3">Copy text ↗</button></div>
+            <p class="tweet-text" id="t1-tweet-3">For example, a user with a TokenLimit role for mint [0;32] and amount 1 can issue SetAuthority on a token account; the balance stays the same, the check passes, and ownership transfers.</p>
+        </section><section class="tweet" aria-label="TWEET 04 / 05">
+            <div class="tweet-meta"><span>TWEET 04 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t1-tweet-4">Copy text ↗</button></div>
+            <p class="tweet-text" id="t1-tweet-4">The same gap can be exploited on stake accounts or any account where authority or lockup parameters can be altered without affecting balances, compromising asset control.</p>
+        </section><section class="tweet" aria-label="TWEET 05 / 05">
+            <div class="tweet-meta"><span>TWEET 05 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t1-tweet-5">Copy text ↗</button></div>
+            <p class="tweet-text" id="t1-tweet-5">Recommendation: restrict allowed instruction types per account type and require explicit verification for control-changing actions. Consider a review. [SS-03699]</p>
+        </section></div>
+      <div class="image-brief">
+       <div class="image-heading"><div><div class="tiny-label">VISUAL BRIEF</div><h4>Image description</h4></div>
+          <button class="copy-btn quiet" type="button" data-copy="t1-image">Copy image prompt ↗</button></div>
+       <p class="image-text" id="t1-image">Editorial 16:9 illustration, dark navy background, restrained teal and amber accents, generous negative space. Use conceptual shapes, not a literal execution trace. Topic: Access Control. Two abstract blocks separated by a visible gap. One abstract gate marks a boundary. No visible text, lettering, labels, numbers, logos, code or screenshots. Do not depict a guaranteed fix.</p>
+       <div class="image-hint">Text description only · No image generated</div>
+     </div>
+    </article><article class="content-card" id="t2">
+      <div class="card-header">
+        <div class="card-heading">
+            <div class="eyebrow">THREAD 02<span class="dot"></span>5 tweets in this thread</div>
+            <h3>Oracle Manipulation</h3>
+        </div>
+        <button class="copy-btn prominent" type="button" data-copy="t2-all"><span aria-hidden="true">⧉</span> Copy full thread</button>
+      </div>
+      <div id="t2-all" class="tweets"><section class="tweet" aria-label="TWEET 01 / 05">
+            <div class="tweet-meta"><span>TWEET 01 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t2-tweet-1">Copy text ↗</button></div>
+            <p class="tweet-text" id="t2-tweet-1">An audit of Hylo discovered that its price oracle accepts any account sharing the same feed ID, not just the official Pyth feed.</p>
+        </section><section class="tweet" aria-label="TWEET 02 / 05">
+            <div class="tweet-meta"><span>TWEET 02 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t2-tweet-2">Copy text ↗</button></div>
+            <p class="tweet-text" id="t2-tweet-2">The program checks only the feed ID, so non-canonical accounts pass the verification step and become trusted sources for price data.</p>
+        </section><section class="tweet" aria-label="TWEET 03 / 05">
+            <div class="tweet-meta"><span>TWEET 03 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t2-tweet-3">Copy text ↗</button></div>
+            <p class="tweet-text" id="t2-tweet-3">An attacker can create a PriceUpdateV2 account, submit a historical price within the 60 s window, and have the contract use that older value.</p>
+        </section><section class="tweet" aria-label="TWEET 04 / 05">
+            <div class="tweet-meta"><span>TWEET 04 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t2-tweet-4">Copy text ↗</button></div>
+            <p class="tweet-text" id="t2-tweet-4">This allows manipulation of any Hylo logic that relies on the oracle price, even though publish and update timestamps are otherwise validated.</p>
+        </section><section class="tweet" aria-label="TWEET 05 / 05">
+            <div class="tweet-meta"><span>TWEET 05 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t2-tweet-5">Copy text ↗</button></div>
+            <p class="tweet-text" id="t2-tweet-5">Fix: enforce a single canonical feed account managed by Pyth, or use a personal persistent account you control for updates. [SS-03738]</p>
+        </section></div>
+      <div class="image-brief">
+       <div class="image-heading"><div><div class="tiny-label">VISUAL BRIEF</div><h4>Image description</h4></div>
+          <button class="copy-btn quiet" type="button" data-copy="t2-image">Copy image prompt ↗</button></div>
+       <p class="image-text" id="t2-image">Editorial 16:9 illustration, dark navy background, restrained teal and amber accents, generous negative space. Use conceptual shapes, not a literal execution trace. Topic: Oracle Manipulation. A segmented circular path surrounding an abstract block. One curved return path provides the focal point. No visible text, lettering, labels, numbers, logos, code or screenshots. Do not depict a guaranteed fix.</p>
+       <div class="image-hint">Text description only · No image generated</div>
+     </div>
+    </article><article class="content-card" id="t3">
+      <div class="card-header">
+        <div class="card-heading">
+            <div class="eyebrow">THREAD 03<span class="dot"></span>5 tweets in this thread</div>
+            <h3>Slippage Protection</h3>
+        </div>
+        <button class="copy-btn prominent" type="button" data-copy="t3-all"><span aria-hidden="true">⧉</span> Copy full thread</button>
+      </div>
+      <div id="t3-all" class="tweets"><section class="tweet" aria-label="TWEET 01 / 05">
+            <div class="tweet-meta"><span>TWEET 01 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t3-tweet-1">Copy text ↗</button></div>
+            <p class="tweet-text" id="t3-tweet-1">An audit of Hylo found its swap instruction lacks slippage protection. It calculates rates using oracle prices, token supplies and protocol state.</p>
+        </section><section class="tweet" aria-label="TWEET 02 / 05">
+            <div class="tweet-meta"><span>TWEET 02 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t3-tweet-2">Copy text ↗</button></div>
+            <p class="tweet-text" id="t3-tweet-2">Because those inputs can change between submission and execution, a front-runner can alter the oracle price or token supply, resulting in a worse rate for the user.</p>
+        </section><section class="tweet" aria-label="TWEET 03 / 05">
+            <div class="tweet-meta"><span>TWEET 03 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t3-tweet-3">Copy text ↗</button></div>
+            <p class="tweet-text" id="t3-tweet-3">The root cause is that the swap instruction does not enforce any user-specified slippage bound.</p>
+        </section><section class="tweet" aria-label="TWEET 04 / 05">
+            <div class="tweet-meta"><span>TWEET 04 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t3-tweet-4">Copy text ↗</button></div>
+            <p class="tweet-text" id="t3-tweet-4">Without a slippage bound, the transaction may complete at any rate, exposing the caller to potentially unfavorable outcomes.</p>
+        </section><section class="tweet" aria-label="TWEET 05 / 05">
+            <div class="tweet-meta"><span>TWEET 05 / 05</span>
+               <button class="copy-btn quiet" type="button" data-copy="t3-tweet-5">Copy text ↗</button></div>
+            <p class="tweet-text" id="t3-tweet-5">Add a slippage check: require a minimum acceptable output and revert if the actual result is lower. [SS-03740]</p>
+        </section></div>
+      <div class="image-brief">
+       <div class="image-heading"><div><div class="tiny-label">VISUAL BRIEF</div><h4>Image description</h4></div>
+          <button class="copy-btn quiet" type="button" data-copy="t3-image">Copy image prompt ↗</button></div>
+       <p class="image-text" id="t3-image">Editorial 16:9 illustration, dark navy background, restrained teal and amber accents, generous negative space. Use conceptual shapes, not a literal execution trace. Topic: Slippage Protection. A segmented circular path surrounding an abstract block. One curved return path provides the focal point. No visible text, lettering, labels, numbers, logos, code or screenshots. Do not depict a guaranteed fix.</p>
+       <div class="image-hint">Text description only · No image generated</div>
+     </div>
+    </article></section>
+<section class="section" id="marketing"><div class="section-head"><div><div class="overline">02 / Marketing</div><h2>Marketing Posts <span class="count">3</span></h2></div><p class="section-note">Standalone promotional copy with a dedicated image description for every post.</p></div><article class="content-card" id="m1">
+      <div class="card-header">
+        <div class="card-heading">
+            <div class="eyebrow">MARKETING POST 01<span class="dot"></span>Single post</div>
+            <h3>smart contract exploit post-mortem</h3>
+        </div>
+        
+      </div>
+      <div id="m1-all" class="tweets"><section class="tweet" aria-label="POST TEXT">
+            <div class="tweet-meta"><span>POST TEXT</span>
+               <button class="copy-btn quiet" type="button" data-copy="m1-tweet-1">Copy text ↗</button></div>
+            <p class="tweet-text" id="m1-tweet-1">Morpho&#x27;s V2 vault can expose funds depending on the adapter used and its allocation to a V1 vault, a conditional risk that reviewers can verify in the deployment. SanadSquad&#x27;s Web3 security service reviews such smart-contract designs and invariants.</p>
+        </section></div>
+      <div class="image-brief">
+       <div class="image-heading"><div><div class="tiny-label">VISUAL BRIEF</div><h4>Image description</h4></div>
+          <button class="copy-btn quiet" type="button" data-copy="m1-image">Copy image prompt ↗</button></div>
+       <p class="image-text" id="m1-image">Editorial 16:9 illustration, dark navy background, restrained teal and amber accents, generous negative space. Use conceptual shapes, not a literal execution trace. Topic: smart contract exploit post-mortem. Two abstract blocks connected by a curved path. One simple directional arrow guides the eye. No visible text, lettering, labels, numbers, logos, code or screenshots. Do not depict a guaranteed fix.</p>
+       <div class="image-hint">Text description only · No image generated</div>
+     </div>
+    </article><article class="content-card" id="m2">
+      <div class="card-header">
+        <div class="card-heading">
+            <div class="eyebrow">MARKETING POST 02<span class="dot"></span>Single post</div>
+            <h3>Supply chain risk</h3>
+        </div>
+        
+      </div>
+      <div id="m2-all" class="tweets"><section class="tweet" aria-label="POST TEXT">
+            <div class="tweet-meta"><span>POST TEXT</span>
+               <button class="copy-btn quiet" type="button" data-copy="m2-tweet-1">Copy text ↗</button></div>
+            <p class="tweet-text" id="m2-tweet-1">A recent npm package analysis shows native code, network access and shell execution flags, indicating high supply chain risk. SanadSquad Web2 pentesting reviews such dependencies, CI/CD pipelines and infrastructure to uncover these exposures.</p>
+        </section></div>
+      <div class="image-brief">
+       <div class="image-heading"><div><div class="tiny-label">VISUAL BRIEF</div><h4>Image description</h4></div>
+          <button class="copy-btn quiet" type="button" data-copy="m2-image">Copy image prompt ↗</button></div>
+       <p class="image-text" id="m2-image">Editorial 16:9 illustration, dark navy background, restrained teal and amber accents, generous negative space. Use conceptual shapes, not a literal execution trace. Topic: Supply chain risk. Two abstract blocks connected by a curved path. One simple directional arrow guides the eye. No visible text, lettering, labels, numbers, logos, code or screenshots. Do not depict a guaranteed fix.</p>
+       <div class="image-hint">Text description only · No image generated</div>
+     </div>
+    </article><article class="content-card" id="m3">
+      <div class="card-header">
+        <div class="card-heading">
+            <div class="eyebrow">MARKETING POST 03<span class="dot"></span>Single post</div>
+            <h3>AI agent prompt injection</h3>
+        </div>
+        
+      </div>
+      <div id="m3-all" class="tweets"><section class="tweet" aria-label="POST TEXT">
+            <div class="tweet-meta"><span>POST TEXT</span>
+               <button class="copy-btn quiet" type="button" data-copy="m3-tweet-1">Copy text ↗</button></div>
+            <p class="tweet-text" id="m3-tweet-1">A recent example shows an AI email assistant obeying a hidden instruction in the prompt and disclosing a CEO password, demonstrating how role-injection can force malicious actions. SanadSquad reviews agentic security and red teaming to identify prompt-injection risks.</p>
+        </section></div>
+      <div class="image-brief">
+       <div class="image-heading"><div><div class="tiny-label">VISUAL BRIEF</div><h4>Image description</h4></div>
+          <button class="copy-btn quiet" type="button" data-copy="m3-image">Copy image prompt ↗</button></div>
+       <p class="image-text" id="m3-image">Editorial 16:9 illustration, dark navy background, restrained teal and amber accents, generous negative space. Use conceptual shapes, not a literal execution trace. Topic: AI agent prompt injection. Two abstract blocks connected by a curved path. One simple directional arrow guides the eye. No visible text, lettering, labels, numbers, logos, code or screenshots. Do not depict a guaranteed fix.</p>
+       <div class="image-hint">Text description only · No image generated</div>
+     </div>
+    </article></section>
+</main><footer class="footer"><span>SanadSquad · Content Pack</span><span>Original generated drafts · Editorial review recommended before publishing</span></footer></div>
+<script>
+(()=>{
+  function getText(target){
+    if(target.classList.contains('tweets')){return [...target.querySelectorAll('.tweet-text')].map(el=>el.textContent.trim()).join('\n\n');}
+    return target.textContent.trim();
+  }
+  async function copyText(value){
+    if(navigator.clipboard && window.isSecureContext){await navigator.clipboard.writeText(value);return;}
+    const a=document.createElement('textarea');a.value=value;a.style.position='fixed';a.style.left='-9999px';document.body.appendChild(a);a.focus();a.select();
+    const ok=document.execCommand('copy');a.remove();if(!ok)throw Error('Browser blocked clipboard');
+  }
+  document.addEventListener('click',async e=>{const btn=e.target.closest('button[data-copy]');if(!btn)return;
+    const target=document.getElementById(btn.dataset.copy);if(!target)return;
+    const old=btn.innerHTML;
+    try{await copyText(getText(target));btn.textContent='✓ Copied!';}
+    catch(_){btn.textContent='Select text to copy';}
+    setTimeout(()=>{btn.innerHTML=old;},1700);
+  });
+})();
+</script></body></html>

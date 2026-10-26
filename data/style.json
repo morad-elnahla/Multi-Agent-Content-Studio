@@ -1,0 +1,88 @@
+{
+  "max_characters": 280,
+  "banned_words": [
+    "delve",
+    "leverage",
+    "tapestry",
+    "underscore",
+    "foster",
+    "pivotal",
+    "realm",
+    "landscape",
+    "crucial",
+    "seamless",
+    "robust",
+    "navigate",
+    "testament",
+    "ever-evolving",
+    "game-changing",
+    "revolutionary",
+    "100% secure"
+  ],
+  "banned_characters": [
+    "—",
+    "–",
+    "“",
+    "”",
+    "‘",
+    "’"
+  ],
+  "banned_constructions": [
+    "not just .+?,? but (?:also )?",
+    "not only .+? but also",
+    "serves as",
+    "stands as",
+    "boasts",
+    "in today's fast-paced world",
+    "it is important to note"
+  ],
+  "hedging_words": [
+    "may",
+    "might",
+    "could",
+    "generally",
+    "typically"
+  ],
+  "max_hedges_per_100_words": 12,
+  "sentence_variance_log": true,
+  "max_ctas_per_week_fraction": 0.3333334,
+  "min_reviewer_total": 16,
+  "min_reviewer_each": 3,
+  "allowed_code_identifiers": [
+    "tx.origin",
+    "msg.sender"
+  ],
+  "approved_ctas": [
+    "DM to discuss a security review.",
+    "Want a security review?"
+  ],
+  "max_revisions": 2,
+  "technical_preferred_max_posts": 7,
+  "service_overclaim_words": [
+    "secures",
+    "secure",
+    "protects",
+    "protect",
+    "prevents",
+    "prevent",
+    "eliminates",
+    "eliminate",
+    "ensures",
+    "ensure",
+    "guarantees",
+    "guarantee",
+    "full stack",
+    "closes that gap"
+  ],
+  "technical_benefit_words": [
+    "protecting",
+    "preventing",
+    "ensuring",
+    "guaranteeing",
+    "eliminating",
+    "stopping",
+    "blocking",
+    "avoiding",
+    "securing"
+  ]
+}

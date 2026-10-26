@@ -1,0 +1,82 @@
+{
+  "SS-03699": {
+    "root_cause": "Instruction authorization checks do not constrain the operations a limited role can execute.",
+    "evidence_quote": "does not restrict which instructions can be executed against accounts"
+  },
+  "SS-03703": {
+    "root_cause": "Session-based authorities are omitted from restricted_keys, so CPI propagates unintended signer privileges.",
+    "evidence_quote": "session-based authorities are not added to the `restricted_keys` list"
+  },
+  "SS-03706": {
+    "root_cause": "Signatures are not single-use and secp256k1 S-values are not limited to canonical low-order values.",
+    "evidence_quote": "The signature is not enforced to be single-use"
+  },
+  "SS-03756": {
+    "root_cause": "RegisteredProgram account ownership is not verified before deriving signing authority.",
+    "evidence_quote": "the owner of the `RegisteredProgram` account however is not checked"
+  },
+  "SS-03853": {
+    "root_cause": "The mint_config account is accepted without verifying its owner and address.",
+    "evidence_quote": "it is not checked that the ACL program actually created the account or is at the correct address"
+  },
+  "SS-03859": {
+    "root_cause": "DeleteList does not require the authority signer or validate the creator.",
+    "evidence_quote": "does not verify that the `authority` is the signer and also does not check that it is the one that created the list"
+  },
+  "SS-03928": {
+    "root_cause": "Stake creation is attempted for positive shares smaller than the required minimum.",
+    "evidence_quote": "If the share is positive but smaller than MINIMUM_STAKE_BALANCE"
+  },
+  "SS-03926": {
+    "root_cause": "Deposit and withdrawal fees are absent, enabling extraction of already-accrued yield with temporary liquidity.",
+    "evidence_quote": "lack of deposit/withdraw fees allow an attacker"
+  },
+  "SS-03911": {
+    "root_cause": "Assigned Address Lookup Tables are not checked for ownership by the ALT program.",
+    "evidence_quote": "never verified to actually belong to the ALT program"
+  },
+  "SS-03738": {
+    "root_cause": "The program accepts noncanonical oracle price-feed accounts with matching feed IDs.",
+    "evidence_quote": "does **not enforce canonical accounts** for `sol_usd_pyth_feed`"
+  },
+  "SS-03740": {
+    "root_cause": "The swap instruction does not enforce a user-specified slippage bound.",
+    "evidence_quote": "there is **no slippage protection mechanism**"
+  },
+  "SS-03813": {
+    "root_cause": "Withdrawal recipient is not checked against the recipient encoded in ExtData.",
+    "evidence_quote": "recipient account is not validated against `ExtData::recipient`"
+  },
+  "SS-03812": {
+    "root_cause": "The tree authority is required to remain a SystemAccount, which the authority can change.",
+    "evidence_quote": "It takes the `authority` account as an input with a constraint that this account is a `SystemAccount`"
+  },
+  "SS-03874": {
+    "root_cause": "UserRegistration allows re-initialization through init_if_needed, breaking referral immutability.",
+    "evidence_quote": "context sets the `init_if_needed` constraint for the account"
+  },
+  "SS-03793": {
+    "root_cause": "The supplied launch signer is not checked against its derived program address.",
+    "evidence_quote": "without checking that the derivation matches the provided key in the accounts"
+  },
+  "SS-03826": {
+    "root_cause": "The creator_info account is not required to be a signer.",
+    "evidence_quote": "there is no check for `creator_info` to be a signer"
+  },
+  "SS-03823": {
+    "root_cause": "Token-2022 mint deposits are incorrectly treated as transfers for fee deduction.",
+    "evidence_quote": "the logic incorrectly treats the operation as a transfer and applies a fee"
+  },
+  "SS-03822": {
+    "root_cause": "Voter weight record updates are unauthenticated.",
+    "evidence_quote": "the update voter weight record instruction is unauthenticated"
+  },
+  "SS-03897": {
+    "root_cause": "Unstake closes a vault unconditionally without accounting for unsolicited tokens.",
+    "evidence_quote": "unconditionally closes the vault, even though the vault can receive unsolicited token transfers"
+  },
+  "SS-03804": {
+    "root_cause": "Proposal activation requires a mutable initiator, but executable accounts cannot be mutable.",
+    "evidence_quote": "The solana runtime does not allow executable accounts to be passed as mutable"
+  }
+}

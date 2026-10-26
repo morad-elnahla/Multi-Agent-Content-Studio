@@ -1,0 +1,16 @@
+{
+  "tech-thread": {
+    "source_policy": "technical",
+    "writer_prompt": "tech_writer",
+    "min_posts": 5,
+    "max_posts": 10,
+    "brand_rules": true
+  },
+  "marketing-post": {
+    "source_policy": "marketing",
+    "writer_prompt": "marketing_writer",
+    "min_posts": 1,
+    "max_posts": 1,
+    "brand_rules": true
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "services": {
+    "web3-security": {
+      "blogs": [
+        "blog.openzeppelin.com",
+        "blog.trailofbits.com",
+        "blog.sigmaprime.io",
+        "osec.io",
+        "neodyme.io",
+        "halborn.com",
+        "hacken.io",
+        "certik.com"
+      ],
+      "docs": [
+        "docs.soliditylang.org",
+        "solana.com",
+        "docs.openzeppelin.com",
+        "ethereum.org"
+      ],
+      "production": [
+        "github.com/ethereum",
+        "github.com/solana-labs",
+        "github.com/anza-xyz",
+        "github.com/OpenZeppelin",
+        "blog.ethereum.org",
+        "eips.ethereum.org"
+      ],
+      "analysis": [
+        "rekt.news",
+        "immunefi.com",
+        "defillama.com",
+        "thedefiant.io"
+      ],
+      "figures": [
+        "blog.trailofbits.com"
+      ]
+    },
+    "pentesting": {
+      "blogs": [
+        "portswigger.net",
+        "snyk.io",
+        "socket.dev",
+        "krebsonsecurity.com",
+        "blog.cloudflare.com"
+      ],
+      "docs": [
+        "owasp.org",
+        "cisa.gov",
+        "cheatsheetseries.owasp.org",
+        "docs.github.com"
+      ],
+      "production": [
+        "github.com/advisories",
+        "nvd.nist.gov",
+        "cisa.gov"
+      ],
+      "analysis": [
+        "cisa.gov",
+        "thedefiant.io",
+        "trmlabs.com",
+        "chainalysis.com",
+        "cointelegraph.com"
+      ],
+      "figures": [
+        "portswigger.net",
+        "krebsonsecurity.com",
+        "schneier.com"
+      ]
+    },
+    "agentic-security": {
+      "blogs": [
+        "www.microsoft.com",
+        "www.anthropic.com",
+        "simonwillison.net",
+        "embracethered.com",
+        "invariantlabs.ai"
+      ],
+      "docs": [
+        "genai.owasp.org",
+        "platform.openai.com",
+        "modelcontextprotocol.io",
+        "owasp.org"
+      ],
+      "production": [
+        "github.com/modelcontextprotocol"
+      ],
+      "analysis": [
+        "genai.owasp.org",
+        "arxiv.org"
+      ],
+      "figures": [
+        "simonwillison.net",
+        "www.anthropic.com"
+      ]
+    },
+    "agentic-payments": {
+      "blogs": [
+        "www.coinbase.com",
+        "www.cloudflare.com",
+        "alchemy.com",
+        "workos.com",
+        "stripe.com"
+      ],
+      "docs": [
+        "docs.cdp.coinbase.com",
+        "developers.cloudflare.com",
+        "x402.org",
+        "docs.stripe.com",
+        "tempo.xyz"
+      ],
+      "production": [
+        "github.com/coinbase/x402",
+        "github.com/tempoxyz"
+      ],
+      "analysis": [
+        "www.coinbase.com",
+        "x402scan.com",
+        "dune.com",
+        "defillama.com"
+      ],
+      "figures": [
+        "www.coinbase.com"
+      ]
+    }
+  },
+  "_deny": [
+    "x.com",
+    "twitter.com",
+    "t.co",
+    "bit.ly",
+    "pastebin.com",
+    "localhost",
+    "127.0.0.1"
+  ],
+  "_deny_url_patterns": [
+    "/topics?/",
+    "/jobs?/",
+    "jobs\\.",
+    "/careers?",
+    "explorer\\.",
+    "/issues/",
+    "/pull/",
+    "/podcasts?/",
+    "/address/",
+    "/block/"
+  ],
+  "_default_queries": {
+    "web3-security": "smart contract exploit post-mortem",
+    "pentesting": "crypto hack compromised keys supply chain",
+    "agentic-security": "AI agent prompt injection wallet",
+    "agentic-payments": "x402 agent payments"
+  }
+}

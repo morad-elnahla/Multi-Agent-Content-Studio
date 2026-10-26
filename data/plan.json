@@ -1,0 +1,49 @@
+{
+  "slots": [
+    {
+      "id": "thread_1",
+      "type": "tech-thread",
+      "focus": "Access Control",
+      "source_mode": "kb",
+      "source_url": ""
+    },
+    {
+      "id": "thread_2",
+      "type": "tech-thread",
+      "focus": "Oracle Manipulation",
+      "source_mode": "kb",
+      "source_url": ""
+    },
+    {
+      "id": "thread_3",
+      "type": "tech-thread",
+      "focus": "Slippage Protection",
+      "source_mode": "kb",
+      "source_url": ""
+    },
+    {
+      "id": "marketing_1",
+      "type": "marketing-post",
+      "focus": "smart contract exploit post-mortem",
+      "service": "web3-security",
+      "format": "news-reaction",
+      "source_mode": "web"
+    },
+    {
+      "id": "marketing_2",
+      "type": "marketing-post",
+      "focus": "Supply chain risk",
+      "service": "pentesting",
+      "format": "differentiation",
+      "source_mode": "web"
+    },
+    {
+      "id": "marketing_3",
+      "type": "marketing-post",
+      "focus": "AI agent prompt injection",
+      "service": "agentic-security",
+      "format": "short-tip",
+      "source_mode": "web"
+    }
+  ]
+}

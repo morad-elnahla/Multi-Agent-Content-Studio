@@ -1,0 +1,15 @@
+{
+  "style": "Editorial 16:9 illustration, dark navy background, restrained teal and amber accents, generous negative space. Use conceptual shapes, not a literal execution trace.",
+  "layouts": {
+    "flow": "Two abstract blocks connected by a curved path.",
+    "barrier": "Two abstract blocks separated by a visible gap.",
+    "cycle": "A segmented circular path surrounding an abstract block."
+  },
+  "symbols": {
+    "arrows": "One simple directional arrow guides the eye.",
+    "gate": "One abstract gate marks a boundary.",
+    "loop": "One curved return path provides the focal point.",
+    "shield": "One abstract shield acts as an editorial motif, not a security guarantee."
+  },
+  "text_policy": "No visible text, lettering, labels, numbers, logos, code or screenshots. Do not depict a guaranteed fix."
+}
